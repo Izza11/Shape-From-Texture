@@ -1,6 +1,6 @@
 close all; clc; clear all;
-brightness = 500;
-winSize = 10;
+brightness = 1500;
+winSize = 20;
 Im1 = imread('est.jpg');
 Im1 = double(rgb2gray(Im1));
 frontalPatch = imread('estF.jpg');
@@ -23,14 +23,14 @@ frontalPatch = frontalPatch.*fspecial('Gaussian',size(frontalPatch),winSize)*bri
 figure;
 imshow(uint8(frontalPatch));
 % Frontal Patch fourier analysis
-M = 325;
-Im1fft = fft2(frontalPatch,M,M);
+M = 1025; N=1025;
+Im1fft = fft2(frontalPatch,M,N);
 Im1fft= fftshift(Im1fft);
 
 % Frontal Patch Spectral Inertia
-[I1, max1, min1] = spectral_Inertia(Im1fft, theta, M);
-figure;
-plot(theta, I1, 'g');
+[I1, max1, min1] = spectral_Inertia(Im1fft);
+% figure;
+% plot(theta, I1, 'g');
 
 %% Local Patch Extraction 
 croppedRangeX = floor(W/patchSize) * patchSize;
@@ -45,15 +45,15 @@ for p = 1:patchSize:H2
 %         imshow(uint8(localPatch));
         
         % Local Patch fourier analysis
-        Im2fft = fft2(localPatch,M,M);
+        Im2fft = fft2(localPatch,M,N);
         Im2fft= fftshift(Im2fft);
 %         imshow(uint8(Im2fft));
         
 %         % Local Patch Spectral Inertia
-        [I2, max2, min2] = spectral_Inertia(Im2fft, theta, M);
-        [I2, c] = normalizeInertia(I1, I2);
-        plot(theta, I1, 'g', theta, I2, 'r');
-        pause(.1);
+        [I2, max2, min2] = spectral_Inertia(Im2fft);
+        I2 = normalizeInertia(I2, max1, min1, max2, min2);
+%         plot(theta, I1, 'g', theta, I2, 'r');
+%         pause(.1);
         
         [MinVal, index] = min(abs(I2-I1));
         tilt = theta(1,index);
@@ -70,20 +70,13 @@ for p = 1:patchSize:H2
     anglesY = anglesY + 1;
     
 end
-
-%%
 zsurf = shapeletsurf(slantAngles, tiltAngles, 6, 1, 1, 'tilt');
 
-% V=interp2(zsurf); 
-% W=interp2(V); 
-h = surf(zsurf);
-% colormap([0.5  0.5  0.5]);
-shading interp;
+V=interp2(zsurf); 
+W=interp2(V); 
+figure;
+surf(W);
 
 % surf(slantAngles, tiltAngles, zsurf);
+
 % needleplotst(slantAngles, tiltAngles, 1, 1);
-tr=TriRep(h.faces,h.vertices);
-figure('color','w'), h=trimesh(tr); axis equal
-set(h,'FaceColor','w','EdgeClor','b')
-% Write to .stl
-stlwrite('est.stl',tr.Triangulation,tr.X);
